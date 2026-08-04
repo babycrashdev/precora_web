@@ -1,0 +1,23 @@
+{
+  "company": {
+    "name": "PRECORA",
+    "expert": "Olivier Lacaton",
+    "title": "Organisme Compétent en Radioprotection",
+    "email": "contact@precora.fr",
+    "phone": "06 00 00 00 00",
+    "address": "France"
+  },
+  "agreements": {
+    "cefri": {
+      "number": "CEFRI-1234",
+      "status": "actif",
+      "expiryDate": "2027-12-31"
+    },
+    "asn": {
+      "number": "ASN-5678",
+      "status": "actif",
+      "expiryDate": "2027-12-31"
+    }
+  },
+  "alerts": []
+}
