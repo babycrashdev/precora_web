@@ -1,43 +1,45 @@
 <template>
-  <main class="page-container">
-    <div class="welcome-card">
-      <h1>PRECORA - Organisme Compétent en Radioprotection</h1>
-      <p>Site web en cours de développement.</p>
-    </div>
-  </main>
+  <div class="landing-layout">
+    <AppHeader />
+    <main>
+      <HeroSection />
+      <BentoServices />
+      <ExpertSection />
+      <ConformiteSection />
+      <ContactSection />
+    </main>
+    <AppFooter />
+  </div>
 </template>
 
 <script setup lang="ts">
-// Page d'accueil principale PRECORA
+import AppHeader from '~/components/layout/AppHeader.vue'
+import HeroSection from '~/components/home/HeroSection.vue'
+import BentoServices from '~/components/home/BentoServices.vue'
+import ExpertSection from '~/components/home/ExpertSection.vue'
+import ConformiteSection from '~/components/home/ConformiteSection.vue'
+import ContactSection from '~/components/home/ContactSection.vue'
+import AppFooter from '~/components/layout/AppFooter.vue'
+
+useHead({
+  title: 'PRECORA - Organisme Compétent en Radioprotection | Olivier Lacaton',
+  meta: [
+    {
+      name: 'description',
+      content: 'PRECORA - Expertise, désignation de CRP, mesure du radon et conformité en radioprotection dentaire, médicale, vétérinaire et industrielle dans le Lot (46), Corrèze (19) et Sud-Ouest.'
+    }
+  ]
+})
 </script>
 
-<style scoped>
-.page-container {
+<style>
+html {
+  scroll-behavior: smooth;
+}
+
+.landing-layout {
   min-height: 100vh;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  background-color: var(--color-bg-main);
-}
-
-.welcome-card {
-  background: var(--color-surface-card);
-  padding: 3rem;
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-md);
-  text-align: center;
-  max-width: 600px;
-  border: 1px solid var(--color-border);
-}
-
-.welcome-card h1 {
-  font-size: 1.75rem;
-  color: var(--color-navy-dark);
-  margin-bottom: 1rem;
-}
-
-.welcome-card p {
-  color: var(--color-text-muted);
+  flex-direction: column;
 }
 </style>
