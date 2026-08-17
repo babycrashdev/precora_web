@@ -105,7 +105,15 @@ const isLoading = ref(false)
 const errorMessage = ref('')
 const activeTab = ref<'editor' | 'calculator'>('editor')
 
+const config = useRuntimeConfig()
 const sessionCookie = useCookie('precora_session')
+
+async function sha256(str: string): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str))
+  return Array.from(new Uint8Array(buf))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+}
 
 onMounted(() => {
   if (sessionCookie.value === 'authenticated') {
@@ -120,17 +128,35 @@ const handleLogin = async () => {
   errorMessage.value = ''
 
   try {
-    const res = await $fetch<{ success: boolean }>('/api/auth', {
-      method: 'POST',
-      body: { password: password.value }
-    })
+    // 1. Tentative API serveur (mode SSR)
+    try {
+      const res = await $fetch<{ success: boolean }>('/api/auth', {
+        method: 'POST',
+        body: { password: password.value }
+      })
+      if (res?.success) {
+        sessionCookie.value = 'authenticated'
+        isAuthenticated.value = true
+        password.value = ''
+        return
+      }
+    } catch {
+      // Fallback statique en cas de 404
+    }
 
-    if (res?.success) {
+    // 2. Vérification cryptographique SHA-256 (mode Statique SSG)
+    const inputHash = await sha256(password.value)
+    const expectedHash = config.public.adminPasswordHash
+
+    if (expectedHash && inputHash === expectedHash) {
+      sessionCookie.value = 'authenticated'
       isAuthenticated.value = true
       password.value = ''
+    } else {
+      errorMessage.value = 'Mot de passe incorrect.'
     }
   } catch (err: any) {
-    errorMessage.value = err.data?.statusMessage || 'Mot de passe incorrect ou erreur d\'authentification.'
+    errorMessage.value = 'Erreur lors de la vérification.'
   } finally {
     isLoading.value = false
   }

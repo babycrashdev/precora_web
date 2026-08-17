@@ -25,6 +25,8 @@ jobs:
 
       - name: 🔨 Generate Static Site
         run: npm run generate
+        env:
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
 
       - name: 📂 Sync files to FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5

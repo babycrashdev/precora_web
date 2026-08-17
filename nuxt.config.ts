@@ -1,8 +1,19 @@
+import { createHash } from 'node:crypto'
+
+const rawPassword = process.env.ADMIN_PASSWORD || 'precora2026'
+const adminPasswordHash = createHash('sha256').update(rawPassword).digest('hex')
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
   srcDir: '.',
+
+  runtimeConfig: {
+    public: {
+      adminPasswordHash
+    }
+  },
 
   css: [
     '~/assets/css/main.css'
