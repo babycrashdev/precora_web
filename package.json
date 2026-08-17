@@ -1,0 +1,27 @@
+{
+  "name": "precora_web",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "typecheck": "nuxi typecheck",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "lucide-vue-next": "^0.474.0",
+    "nuxt": "^4.5.1",
+    "vue": "^3.5.40",
+    "vue-router": "^5.2.0"
+  },
+  "devDependencies": {
+    "@vue/test-utils": "^2.4.6",
+    "happy-dom": "^17.1.8",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5",
+    "vue-tsc": "^2.2.0"
+  }
+}

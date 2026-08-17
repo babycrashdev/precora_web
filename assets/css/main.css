@@ -1,0 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@500;600;700&display=swap');
+
+:root {
+  /* Couleurs de Marque PRECORA */
+  --color-navy-primary: #1e2942;   /* Bleu Marine élégant et profond */
+  --color-navy-dark: #0f172a;      /* Navy très sombre (Header/Footer/Dark surfaces) */
+  --color-blue-accent: #0095eb;    /* Bleu Cyan dynamique (CTA / Interactions) */
+  --color-blue-hover: #007cc3;     /* Hover state */
+  --color-blue-light: #e6f4fe;     /* Fond subtil cartes/badges */
+
+  /* Neutres & Surfaces */
+  --color-bg-main: #f8fafc;        /* Fond clair épuré */
+  --color-surface-card: #ffffff;   /* Surface des cartes Bento */
+  --color-text-main: #1e293b;      /* Texte principal sombre */
+  --color-text-muted: #64748b;     /* Texte secondaire gris */
+  --color-border: #e2e8f0;         /* Bordures fines */
+
+  /* Statuts */
+  --color-success: #10b981;        /* Vert validation / Agrément actif */
+  --color-warning: #f59e0b;        /* Orange alerte */
+  --color-danger: #ef4444;         /* Rouge erreur */
+
+  /* Ombres & Effets Octogency */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 6px 20px rgba(15, 23, 42, 0.08);
+  --shadow-hover: 0 12px 32px rgba(0, 149, 235, 0.15);
+  --radius-card: 16px;
+  --radius-btn: 8px;
+
+  /* Typographie */
+  --font-family-base: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family-heading: 'Poppins', 'Inter', sans-serif;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font-family-base);
+  background-color: var(--color-bg-main);
+  color: var(--color-text-main);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-family-heading);
+  color: var(--color-navy-dark);
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+input, select, textarea {
+  font-family: inherit;
+}
