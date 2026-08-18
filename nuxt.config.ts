@@ -30,6 +30,11 @@ export default defineNuxtConfig({
     }
   },
 
+  appConfig: {
+    adminPasswordHash,
+    encryptedGithubToken
+  },
+
   css: [
     '~/assets/css/main.css'
   ],
