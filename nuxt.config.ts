@@ -35,6 +35,12 @@ export default defineNuxtConfig({
     encryptedGithubToken
   },
 
+  nitro: {
+    prerender: {
+      routes: ['/api/content']
+    }
+  },
+
   css: [
     '~/assets/css/main.css'
   ],

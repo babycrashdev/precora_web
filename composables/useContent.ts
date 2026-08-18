@@ -1,3 +1,6 @@
+import defaultContentData from '../server/data/content.json'
+import { ref } from 'vue'
+
 export interface Agreement {
   id: string
   sector: string
@@ -53,7 +56,25 @@ export function isRadonSeason(date: Date = new Date()): boolean {
   return month >= 8 || month <= 3
 }
 
+// État réactif global partagé initialisé avec les données du JSON
+const globalContent = ref<ContentData>(JSON.parse(JSON.stringify(defaultContentData)))
+
 export const useContent = () => {
-  const { data: content, refresh, error, pending } = useFetch<ContentData>('/api/content')
-  return { content, refresh, error, pending }
+  const refresh = async () => {
+    try {
+      const res = await $fetch<ContentData>('/api/content')
+      if (res) {
+        globalContent.value = res
+      }
+    } catch {
+      // En mode statique, on conserve les données locales embarquées
+    }
+  }
+
+  return {
+    content: globalContent,
+    refresh,
+    error: ref(null),
+    pending: ref(false)
+  }
 }
