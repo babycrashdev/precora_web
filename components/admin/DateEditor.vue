@@ -3,81 +3,42 @@
     <div class="editor-header">
       <div>
         <h2>⚙️ Éditeur de Contenu & Agréments</h2>
-        <p class="subtitle">Modifiez les dates d'échéance des agréments et le message d'alerte en temps réel.</p>
+        <p class="subtitle">Modifiez les dates d'échéance des agréments et le message d'alerte en toute simplicité.</p>
       </div>
 
-      <!-- GitHub Sync Status Badge -->
-      <div class="sync-badge-container">
-        <button type="button" class="btn-toggle-sync" @click="showSyncSettings = !showSyncSettings">
-          <span v-if="githubToken" class="badge-status-synced">🟢 Synchro GitHub Prête</span>
-          <span v-else class="badge-status-missing">⚠️ Configurer Synchro GitHub</span>
-          <span class="gear-icon">⚙️</span>
-        </button>
-      </div>
+      <!-- Advanced settings toggle (discret) -->
+      <button 
+        type="button" 
+        class="btn-advanced-toggle" 
+        @click="showAdvanced = !showAdvanced"
+        title="Paramètres de synchronisation"
+      >
+        <span>{{ showAdvanced ? 'Masquer options' : '⚙️ Options' }}</span>
+      </button>
     </div>
 
-    <!-- GitHub Settings Accordion / Modal Box -->
+    <!-- Advanced Settings (uniquement si ouvert manuellement) -->
     <transition name="slide-fade">
-      <div v-if="showSyncSettings" class="sync-settings-card">
-        <div class="sync-settings-header">
-          <h4>🔑 Configuration de la Publication Automatique (GitHub)</h4>
-          <button type="button" class="btn-close-sync" @click="showSyncSettings = false">✕</button>
+      <div v-if="showAdvanced" class="advanced-settings-card">
+        <div class="advanced-header">
+          <h4>⚙️ Paramètres Avancés (Développeur)</h4>
+          <button type="button" class="btn-close-advanced" @click="showAdvanced = false">✕</button>
         </div>
-        <p class="sync-explanation">
-          Comme votre site est hébergé en statique, les modifications sont directement enregistrées sur GitHub, ce qui redéploie automatiquement le site en ligne pour tous les visiteurs.
+        <p class="advanced-hint">
+          Par défaut, le token de publication est géré et chiffré automatiquement via les secrets du projet. Vous pouvez forcer un token manuel ici si besoin.
         </p>
-
         <div class="grid-2">
+          <div class="form-group">
+            <label for="manual-repo">Dépôt GitHub</label>
+            <input id="manual-repo" type="text" v-model="manualRepo" class="form-input text-input" />
+          </div>
+          <div class="form-group">
+            <label for="manual-branch">Branche</label>
+            <input id="manual-branch" type="text" v-model="manualBranch" class="form-input text-input" />
+          </div>
           <div class="form-group full-width">
-            <label for="gh-token">
-              GitHub Personal Access Token (PAT)
-              <a 
-                href="https://github.com/settings/tokens/new?scopes=repo&description=Precora+Admin+Sync" 
-                target="_blank" 
-                rel="noopener"
-                class="token-help-link"
-              >
-                🔗 Générer un token GitHub en 1 clic
-              </a>
-            </label>
-            <div class="input-with-toggle">
-              <input 
-                id="gh-token"
-                :type="showToken ? 'text' : 'password'"
-                v-model="githubToken"
-                @input="saveGithubConfig"
-                placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                class="form-input text-input"
-              />
-              <button type="button" class="btn-eye" @click="showToken = !showToken" :title="showToken ? 'Masquer' : 'Afficher'">
-                {{ showToken ? '👁️' : '🙈' }}
-              </button>
-            </div>
-            <span class="field-hint">Le token est stocké uniquement dans votre navigateur et n'est jamais transmis à des tiers.</span>
-          </div>
-
-          <div class="form-group">
-            <label for="gh-repo">Dépôt GitHub (Propriétaire/Dépôt)</label>
-            <input 
-              id="gh-repo"
-              type="text" 
-              v-model="githubRepo"
-              @input="saveGithubConfig"
-              class="form-input text-input"
-              placeholder="babycrashdev/precora_web"
-            />
-          </div>
-
-          <div class="form-group">
-            <label for="gh-branch">Branche cible</label>
-            <input 
-              id="gh-branch"
-              type="text" 
-              v-model="githubBranch"
-              @input="saveGithubConfig"
-              class="form-input text-input"
-              placeholder="main"
-            />
+            <label for="manual-token">Token Manuel (Optionnel)</label>
+            <input id="manual-token" type="password" v-model="manualToken" placeholder="Laisser vide pour utiliser le token automatique chiffré" class="form-input text-input" />
           </div>
         </div>
       </div>
@@ -190,12 +151,9 @@
 
       <!-- Submit & Feedback -->
       <div class="form-actions">
-        <button type="button" @click="exportJsonBackup" class="btn-secondary" title="Télécharger le fichier content.json">
-          📥 Télécharger JSON
-        </button>
         <button type="submit" :disabled="isSubmitting" class="btn-save">
           <span v-if="isSubmitting" class="spinner"></span>
-          <span v-else>🚀 Publier les Modifications</span>
+          <span v-else>🚀 Enregistrer et Publier</span>
         </button>
       </div>
 
@@ -209,19 +167,20 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { useContent } from '../../composables/useContent'
+import { useAdminAuth } from '../../composables/useAdminAuth'
 
 const { content, refresh } = useContent()
+const { decryptedGithubToken } = useAdminAuth()
 
 const isSubmitting = ref(false)
 const feedbackMessage = ref('')
 const feedbackType = ref<'success' | 'error' | 'warning'>('success')
 
-// GitHub Sync Config
-const showSyncSettings = ref(false)
-const showToken = ref(false)
-const githubToken = ref('')
-const githubRepo = ref('babycrashdev/precora_web')
-const githubBranch = ref('main')
+// Advanced overrides (optional)
+const showAdvanced = ref(false)
+const manualRepo = ref('babycrashdev/precora_web')
+const manualBranch = ref('main')
+const manualToken = ref('')
 
 // Reactive local state
 const medDentDate = ref('')
@@ -236,22 +195,6 @@ const alertForm = ref({
   title: '',
   message: ''
 })
-
-const loadGithubConfig = () => {
-  if (import.meta.client) {
-    githubToken.value = localStorage.getItem('precora_gh_token') || ''
-    githubRepo.value = localStorage.getItem('precora_gh_repo') || 'babycrashdev/precora_web'
-    githubBranch.value = localStorage.getItem('precora_gh_branch') || 'main'
-  }
-}
-
-const saveGithubConfig = () => {
-  if (import.meta.client) {
-    localStorage.setItem('precora_gh_token', githubToken.value.trim())
-    localStorage.setItem('precora_gh_repo', githubRepo.value.trim())
-    localStorage.setItem('precora_gh_branch', githubBranch.value.trim())
-  }
-}
 
 const populateForm = () => {
   if (!content.value) return
@@ -282,7 +225,6 @@ const populateForm = () => {
 }
 
 onMounted(() => {
-  loadGithubConfig()
   populateForm()
 })
 
@@ -308,7 +250,6 @@ const updateIndusFormatted = () => {
   }
 }
 
-// UTF-8 to Base64 helper
 function utf8ToBase64(str: string): string {
   const bytes = new TextEncoder().encode(str)
   let binary = ''
@@ -318,22 +259,9 @@ function utf8ToBase64(str: string): string {
   return btoa(binary)
 }
 
-const exportJsonBackup = () => {
-  if (!content.value) return
-  const updatedContent = buildUpdatedContent()
-  const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(updatedContent, null, 2))
-  const downloadAnchor = document.createElement('a')
-  downloadAnchor.setAttribute('href', dataStr)
-  downloadAnchor.setAttribute('download', 'content.json')
-  document.body.appendChild(downloadAnchor)
-  downloadAnchor.click()
-  downloadAnchor.remove()
-}
-
 const buildUpdatedContent = () => {
   const updated = JSON.parse(JSON.stringify(content.value || {}))
 
-  // Update agreements
   if (Array.isArray(updated.agreements)) {
     const medDent = updated.agreements.find((a: any) => a.id === 'medical-dentaire-veto')
     if (medDent) {
@@ -348,7 +276,6 @@ const buildUpdatedContent = () => {
     }
   }
 
-  // Update qualianor info badge
   if (updated.company?.accreditations) {
     const qualianor = updated.company.accreditations.find((a: any) => a.id === 'qualianor')
     if (qualianor) {
@@ -357,7 +284,6 @@ const buildUpdatedContent = () => {
     }
   }
 
-  // Update alert
   updated.alert = {
     enabled: alertForm.value.enabled,
     type: alertForm.value.type,
@@ -374,15 +300,14 @@ const saveContent = async () => {
 
   try {
     const updatedContent = buildUpdatedContent()
-    const token = githubToken.value.trim()
-    const repo = githubRepo.value.trim() || 'babycrashdev/precora_web'
-    const branch = githubBranch.value.trim() || 'main'
+    const token = manualToken.value.trim() || decryptedGithubToken.value.trim()
+    const repo = manualRepo.value.trim() || 'babycrashdev/precora_web'
+    const branch = manualBranch.value.trim() || 'main'
 
-    // Cas 1 : GitHub Token configuré (Publication via API GitHub)
+    // Cas 1 : Token GitHub disponible (chiffré ou manuel)
     if (token) {
       const filePath = 'server/data/content.json'
       
-      // Étape 1 : Récupérer le SHA du fichier existant
       const getFileRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}?ref=${branch}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -391,16 +316,12 @@ const saveContent = async () => {
       })
 
       if (!getFileRes.ok) {
-        if (getFileRes.status === 401 || getFileRes.status === 403) {
-          throw new Error('Token GitHub invalide ou droits insuffisants (assurez-vous que le token a la permission "repo" ou "contents:write").')
-        }
-        throw new Error(`Impossible de récupérer le fichier sur GitHub (${getFileRes.status} ${getFileRes.statusText})`)
+        throw new Error(`Erreur d'accès (${getFileRes.status}). Vérifiez les droits du token.`)
       }
 
       const fileData = await getFileRes.json()
       const currentSha = fileData.sha
 
-      // Étape 2 : Committer la mise à jour sur GitHub
       const jsonString = JSON.stringify(updatedContent, null, 2)
       const base64Content = utf8ToBase64(jsonString)
 
@@ -421,20 +342,19 @@ const saveContent = async () => {
 
       if (!putRes.ok) {
         const errJson = await putRes.json().catch(() => ({}))
-        throw new Error(errJson.message || `Erreur GitHub lors de l'enregistrement (${putRes.status})`)
+        throw new Error(errJson.message || `Erreur de publication (${putRes.status})`)
       }
 
-      // Succès GitHub
       if (content.value) {
         Object.assign(content.value, updatedContent)
       }
 
       feedbackType.value = 'success'
-      feedbackMessage.value = '🚀 <strong>Modifications enregistrées et publiées sur GitHub !</strong><br>Le déploiement automatique est lancé sur votre serveur FTP. Votre site sera à jour dans 1 à 2 minutes.'
+      feedbackMessage.value = '✅ <strong>Modifications publiées avec succès !</strong><br>Le site se met à jour automatiquement en arrière-plan. Il sera visible pour tous les visiteurs dans 1 à 2 minutes.'
       return
     }
 
-    // Cas 2 : Tentative API locale (si serveur de développement local actif)
+    // Cas 2 : Environnement de développement local (Node)
     try {
       await $fetch('/api/content', {
         method: 'POST',
@@ -445,10 +365,8 @@ const saveContent = async () => {
       feedbackMessage.value = '✅ Le contenu a été sauvegardé avec succès en local !'
       return
     } catch {
-      // Si l'API locale échoue et qu'il n'y a pas de token GitHub
-      showSyncSettings.value = true
       feedbackType.value = 'warning'
-      feedbackMessage.value = '⚠️ <strong>Token GitHub requis</strong> : Pour publier les changements sur votre site statique, veuillez renseigner votre token GitHub ci-dessus.'
+      feedbackMessage.value = '⚠️ Le token de publication GitHub n\'est pas configuré dans les secrets du projet.'
     }
 
   } catch (err: any) {
@@ -477,7 +395,6 @@ const saveContent = async () => {
   justify-content: space-between;
   align-items: flex-start;
   gap: 1.5rem;
-  flex-wrap: wrap;
 }
 
 .editor-header h2 {
@@ -491,99 +408,54 @@ const saveContent = async () => {
   font-size: 0.95rem;
 }
 
-/* Sync badge & trigger */
-.btn-toggle-sync {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  background: #f8fafc;
-  border: 1px solid var(--color-border, #cbd5e1);
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
+.btn-advanced-toggle {
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  color: #94a3b8;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.8rem;
   transition: all 0.2s ease;
 
   &:hover {
-    background: #f1f5f9;
-    border-color: #94a3b8;
+    color: var(--color-navy-primary, #1e2942);
+    border-color: #cbd5e1;
   }
 }
 
-.badge-status-synced {
-  color: #059669;
-}
-
-.badge-status-missing {
-  color: #d97706;
-}
-
-/* Sync Settings Card */
-.sync-settings-card {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
+.advanced-settings-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   border-radius: 12px;
-  padding: 1.5rem;
+  padding: 1.25rem;
   margin-bottom: 2rem;
 }
 
-.sync-settings-header {
+.advanced-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
-.sync-settings-header h4 {
-  font-size: 1.05rem;
-  color: #166534;
+.advanced-header h4 {
+  font-size: 0.95rem;
   margin: 0;
+  color: var(--color-navy-dark, #0f172a);
 }
 
-.btn-close-sync {
+.btn-close-advanced {
   background: transparent;
   border: none;
-  font-size: 1.1rem;
   cursor: pointer;
-  color: #166534;
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-
-  &:hover {
-    background: rgba(22, 101, 52, 0.1);
-  }
+  color: #94a3b8;
 }
 
-.sync-explanation {
-  font-size: 0.85rem;
-  color: #15803d;
-  margin-bottom: 1.25rem;
-  line-height: 1.4;
-}
-
-.token-help-link {
+.advanced-hint {
   font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--color-blue-accent, #0095eb);
-  text-decoration: underline;
-  margin-left: 0.5rem;
-}
-
-.input-with-toggle {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.btn-eye {
-  position: absolute;
-  right: 0.75rem;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font-size: 1rem;
-  padding: 0.25rem;
+  color: #64748b;
+  margin-bottom: 1rem;
 }
 
 /* Form sections */
@@ -715,34 +587,17 @@ const saveContent = async () => {
 .form-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 1rem;
-  align-items: center;
-}
-
-.btn-secondary {
-  background: #ffffff;
-  color: var(--color-navy-primary, #1e2942);
-  border: 1px solid var(--color-border, #cbd5e1);
-  padding: 0.85rem 1.5rem;
-  border-radius: var(--radius-btn, 8px);
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #f8fafc;
-    border-color: #94a3b8;
-  }
 }
 
 .btn-save {
   background: var(--color-blue-accent, #0095eb);
   color: #ffffff;
   font-weight: 600;
-  padding: 0.85rem 2rem;
+  padding: 0.95rem 2.5rem;
   border-radius: var(--radius-btn, 8px);
   border: none;
   cursor: pointer;
+  font-size: 1rem;
   transition: background 0.2s ease, transform 0.1s ease;
   display: inline-flex;
   align-items: center;
