@@ -87,6 +87,6 @@
     "enabled": true,
     "type": "warning",
     "title": "Alerte Réglementaire Radioprotection",
-    "message": "Conformément aux décrets et décisions de l'ASNR (Code du Travail R. 4451-1), le suivi périodique des agréments et contrôles de vos installations x-ray et zones à risque doit être anticipé avant les échéances d'agrément."
+    "message": "test"
   }
 }
