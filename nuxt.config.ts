@@ -1,6 +1,6 @@
 import { createHash, createCipheriv, randomBytes } from 'node:crypto'
 
-const rawPassword = process.env.ADMIN_PASSWORD || 'precora2026'
+const rawPassword = (process.env.ADMIN_PASSWORD || '').trim() || 'precora2026'
 const adminPasswordHash = createHash('sha256').update(rawPassword).digest('hex')
 
 // Support GH_PAT / GITHUB_PAT / GITHUB_TOKEN

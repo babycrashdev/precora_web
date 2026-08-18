@@ -57,7 +57,8 @@ export const useAdminAuth = () => {
 
   const login = async (passwordInput: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      const inputHash = await sha256(passwordInput)
+      const cleanPass = passwordInput.trim()
+      const inputHash = await sha256(cleanPass)
       const expectedHash = config.public.adminPasswordHash
 
       if (expectedHash && inputHash === expectedHash) {
@@ -67,7 +68,7 @@ export const useAdminAuth = () => {
         // Déchiffrement du token si présent
         const encToken = config.public.encryptedGithubToken as string
         if (encToken) {
-          const token = await decryptToken(encToken, passwordInput)
+          const token = await decryptToken(encToken, cleanPass)
           if (token) {
             decryptedGithubToken.value = token
             if (import.meta.client) {
