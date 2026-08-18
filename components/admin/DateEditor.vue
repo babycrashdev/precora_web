@@ -1,9 +1,87 @@
 <template>
   <div class="date-editor-container">
     <div class="editor-header">
-      <h2>⚙️ Éditeur de Contenu & Agréments</h2>
-      <p class="subtitle">Modifiez les dates d'échéance des agréments et le message d'alerte en temps réel.</p>
+      <div>
+        <h2>⚙️ Éditeur de Contenu & Agréments</h2>
+        <p class="subtitle">Modifiez les dates d'échéance des agréments et le message d'alerte en temps réel.</p>
+      </div>
+
+      <!-- GitHub Sync Status Badge -->
+      <div class="sync-badge-container">
+        <button type="button" class="btn-toggle-sync" @click="showSyncSettings = !showSyncSettings">
+          <span v-if="githubToken" class="badge-status-synced">🟢 Synchro GitHub Prête</span>
+          <span v-else class="badge-status-missing">⚠️ Configurer Synchro GitHub</span>
+          <span class="gear-icon">⚙️</span>
+        </button>
+      </div>
     </div>
+
+    <!-- GitHub Settings Accordion / Modal Box -->
+    <transition name="slide-fade">
+      <div v-if="showSyncSettings" class="sync-settings-card">
+        <div class="sync-settings-header">
+          <h4>🔑 Configuration de la Publication Automatique (GitHub)</h4>
+          <button type="button" class="btn-close-sync" @click="showSyncSettings = false">✕</button>
+        </div>
+        <p class="sync-explanation">
+          Comme votre site est hébergé en statique, les modifications sont directement enregistrées sur GitHub, ce qui redéploie automatiquement le site en ligne pour tous les visiteurs.
+        </p>
+
+        <div class="grid-2">
+          <div class="form-group full-width">
+            <label for="gh-token">
+              GitHub Personal Access Token (PAT)
+              <a 
+                href="https://github.com/settings/tokens/new?scopes=repo&description=Precora+Admin+Sync" 
+                target="_blank" 
+                rel="noopener"
+                class="token-help-link"
+              >
+                🔗 Générer un token GitHub en 1 clic
+              </a>
+            </label>
+            <div class="input-with-toggle">
+              <input 
+                id="gh-token"
+                :type="showToken ? 'text' : 'password'"
+                v-model="githubToken"
+                @input="saveGithubConfig"
+                placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                class="form-input text-input"
+              />
+              <button type="button" class="btn-eye" @click="showToken = !showToken" :title="showToken ? 'Masquer' : 'Afficher'">
+                {{ showToken ? '👁️' : '🙈' }}
+              </button>
+            </div>
+            <span class="field-hint">Le token est stocké uniquement dans votre navigateur et n'est jamais transmis à des tiers.</span>
+          </div>
+
+          <div class="form-group">
+            <label for="gh-repo">Dépôt GitHub (Propriétaire/Dépôt)</label>
+            <input 
+              id="gh-repo"
+              type="text" 
+              v-model="githubRepo"
+              @input="saveGithubConfig"
+              class="form-input text-input"
+              placeholder="babycrashdev/precora_web"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="gh-branch">Branche cible</label>
+            <input 
+              id="gh-branch"
+              type="text" 
+              v-model="githubBranch"
+              @input="saveGithubConfig"
+              class="form-input text-input"
+              placeholder="main"
+            />
+          </div>
+        </div>
+      </div>
+    </transition>
 
     <form @submit.prevent="saveContent" class="editor-form">
       <!-- Section Agréments -->
@@ -112,14 +190,17 @@
 
       <!-- Submit & Feedback -->
       <div class="form-actions">
+        <button type="button" @click="exportJsonBackup" class="btn-secondary" title="Télécharger le fichier content.json">
+          📥 Télécharger JSON
+        </button>
         <button type="submit" :disabled="isSubmitting" class="btn-save">
           <span v-if="isSubmitting" class="spinner"></span>
-          <span v-else>💾 Enregistrer les Modifications</span>
+          <span v-else>🚀 Publier les Modifications</span>
         </button>
       </div>
 
       <div v-if="feedbackMessage" :class="['feedback-banner', feedbackType]">
-        {{ feedbackMessage }}
+        <div class="feedback-content" v-html="feedbackMessage"></div>
       </div>
     </form>
   </div>
@@ -133,7 +214,14 @@ const { content, refresh } = useContent()
 
 const isSubmitting = ref(false)
 const feedbackMessage = ref('')
-const feedbackType = ref<'success' | 'error'>('success')
+const feedbackType = ref<'success' | 'error' | 'warning'>('success')
+
+// GitHub Sync Config
+const showSyncSettings = ref(false)
+const showToken = ref(false)
+const githubToken = ref('')
+const githubRepo = ref('babycrashdev/precora_web')
+const githubBranch = ref('main')
 
 // Reactive local state
 const medDentDate = ref('')
@@ -148,6 +236,22 @@ const alertForm = ref({
   title: '',
   message: ''
 })
+
+const loadGithubConfig = () => {
+  if (import.meta.client) {
+    githubToken.value = localStorage.getItem('precora_gh_token') || ''
+    githubRepo.value = localStorage.getItem('precora_gh_repo') || 'babycrashdev/precora_web'
+    githubBranch.value = localStorage.getItem('precora_gh_branch') || 'main'
+  }
+}
+
+const saveGithubConfig = () => {
+  if (import.meta.client) {
+    localStorage.setItem('precora_gh_token', githubToken.value.trim())
+    localStorage.setItem('precora_gh_repo', githubRepo.value.trim())
+    localStorage.setItem('precora_gh_branch', githubBranch.value.trim())
+  }
+}
 
 const populateForm = () => {
   if (!content.value) return
@@ -178,6 +282,7 @@ const populateForm = () => {
 }
 
 onMounted(() => {
+  loadGithubConfig()
   populateForm()
 })
 
@@ -203,56 +308,152 @@ const updateIndusFormatted = () => {
   }
 }
 
-const saveContent = async () => {
+// UTF-8 to Base64 helper
+function utf8ToBase64(str: string): string {
+  const bytes = new TextEncoder().encode(str)
+  let binary = ''
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i])
+  }
+  return btoa(binary)
+}
+
+const exportJsonBackup = () => {
   if (!content.value) return
+  const updatedContent = buildUpdatedContent()
+  const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(updatedContent, null, 2))
+  const downloadAnchor = document.createElement('a')
+  downloadAnchor.setAttribute('href', dataStr)
+  downloadAnchor.setAttribute('download', 'content.json')
+  document.body.appendChild(downloadAnchor)
+  downloadAnchor.click()
+  downloadAnchor.remove()
+}
 
-  isSubmitting.value = true
-  feedbackMessage.value = ''
+const buildUpdatedContent = () => {
+  const updated = JSON.parse(JSON.stringify(content.value || {}))
 
-  try {
-    // Clone and mutate structure
-    const updatedContent = JSON.parse(JSON.stringify(content.value))
-
-    // Update agreements
-    const medDent = updatedContent.agreements.find((a: any) => a.id === 'medical-dentaire-veto')
+  // Update agreements
+  if (Array.isArray(updated.agreements)) {
+    const medDent = updated.agreements.find((a: any) => a.id === 'medical-dentaire-veto')
     if (medDent) {
       medDent.expiryDate = medDentDate.value
       medDent.expiryFormatted = medDentFormatted.value
     }
 
-    const indus = updatedContent.agreements.find((a: any) => a.id === 'industrie')
+    const indus = updated.agreements.find((a: any) => a.id === 'industrie')
     if (indus) {
       indus.expiryDate = indusDate.value
       indus.expiryFormatted = indusFormatted.value
     }
+  }
 
-    // Update qualianor info badge
-    const qualianor = updatedContent.company.accreditations.find((a: any) => a.id === 'qualianor')
+  // Update qualianor info badge
+  if (updated.company?.accreditations) {
+    const qualianor = updated.company.accreditations.find((a: any) => a.id === 'qualianor')
     if (qualianor) {
       qualianor.name = qualianorInfo.value
       qualianor.badge = qualianorInfo.value
     }
+  }
 
-    // Update alert
-    updatedContent.alert = {
-      enabled: alertForm.value.enabled,
-      type: alertForm.value.type,
-      title: alertForm.value.title,
-      message: alertForm.value.message
+  // Update alert
+  updated.alert = {
+    enabled: alertForm.value.enabled,
+    type: alertForm.value.type,
+    title: alertForm.value.title,
+    message: alertForm.value.message
+  }
+
+  return updated
+}
+
+const saveContent = async () => {
+  isSubmitting.value = true
+  feedbackMessage.value = ''
+
+  try {
+    const updatedContent = buildUpdatedContent()
+    const token = githubToken.value.trim()
+    const repo = githubRepo.value.trim() || 'babycrashdev/precora_web'
+    const branch = githubBranch.value.trim() || 'main'
+
+    // Cas 1 : GitHub Token configuré (Publication via API GitHub)
+    if (token) {
+      const filePath = 'server/data/content.json'
+      
+      // Étape 1 : Récupérer le SHA du fichier existant
+      const getFileRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}?ref=${branch}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.github+json'
+        }
+      })
+
+      if (!getFileRes.ok) {
+        if (getFileRes.status === 401 || getFileRes.status === 403) {
+          throw new Error('Token GitHub invalide ou droits insuffisants (assurez-vous que le token a la permission "repo" ou "contents:write").')
+        }
+        throw new Error(`Impossible de récupérer le fichier sur GitHub (${getFileRes.status} ${getFileRes.statusText})`)
+      }
+
+      const fileData = await getFileRes.json()
+      const currentSha = fileData.sha
+
+      // Étape 2 : Committer la mise à jour sur GitHub
+      const jsonString = JSON.stringify(updatedContent, null, 2)
+      const base64Content = utf8ToBase64(jsonString)
+
+      const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.github+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: 'chore(content): mise à jour du contenu depuis l\'espace admin',
+          content: base64Content,
+          sha: currentSha,
+          branch: branch
+        })
+      })
+
+      if (!putRes.ok) {
+        const errJson = await putRes.json().catch(() => ({}))
+        throw new Error(errJson.message || `Erreur GitHub lors de l'enregistrement (${putRes.status})`)
+      }
+
+      // Succès GitHub
+      if (content.value) {
+        Object.assign(content.value, updatedContent)
+      }
+
+      feedbackType.value = 'success'
+      feedbackMessage.value = '🚀 <strong>Modifications enregistrées et publiées sur GitHub !</strong><br>Le déploiement automatique est lancé sur votre serveur FTP. Votre site sera à jour dans 1 à 2 minutes.'
+      return
     }
 
-    await $fetch('/api/content', {
-      method: 'POST',
-      body: updatedContent
-    })
+    // Cas 2 : Tentative API locale (si serveur de développement local actif)
+    try {
+      await $fetch('/api/content', {
+        method: 'POST',
+        body: updatedContent
+      })
+      await refresh()
+      feedbackType.value = 'success'
+      feedbackMessage.value = '✅ Le contenu a été sauvegardé avec succès en local !'
+      return
+    } catch {
+      // Si l'API locale échoue et qu'il n'y a pas de token GitHub
+      showSyncSettings.value = true
+      feedbackType.value = 'warning'
+      feedbackMessage.value = '⚠️ <strong>Token GitHub requis</strong> : Pour publier les changements sur votre site statique, veuillez renseigner votre token GitHub ci-dessus.'
+    }
 
-    await refresh()
-
-    feedbackType.value = 'success'
-    feedbackMessage.value = '✅ Le contenu a été mis à jour et sauvegardé avec succès !'
   } catch (err: any) {
     feedbackType.value = 'error'
-    feedbackMessage.value = err.data?.statusMessage || '❌ Une erreur est survenue lors de la sauvegarde.'
+    feedbackMessage.value = `❌ ${err.message || 'Une erreur est survenue lors de la sauvegarde.'}`
   } finally {
     isSubmitting.value = false
   }
@@ -272,6 +473,11 @@ const saveContent = async () => {
   margin-bottom: 2rem;
   padding-bottom: 1.5rem;
   border-bottom: 1px solid var(--color-border, #e2e8f0);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+  flex-wrap: wrap;
 }
 
 .editor-header h2 {
@@ -285,6 +491,102 @@ const saveContent = async () => {
   font-size: 0.95rem;
 }
 
+/* Sync badge & trigger */
+.btn-toggle-sync {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: #f8fafc;
+  border: 1px solid var(--color-border, #cbd5e1);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+  }
+}
+
+.badge-status-synced {
+  color: #059669;
+}
+
+.badge-status-missing {
+  color: #d97706;
+}
+
+/* Sync Settings Card */
+.sync-settings-card {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.sync-settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.sync-settings-header h4 {
+  font-size: 1.05rem;
+  color: #166534;
+  margin: 0;
+}
+
+.btn-close-sync {
+  background: transparent;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: #166534;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+
+  &:hover {
+    background: rgba(22, 101, 52, 0.1);
+  }
+}
+
+.sync-explanation {
+  font-size: 0.85rem;
+  color: #15803d;
+  margin-bottom: 1.25rem;
+  line-height: 1.4;
+}
+
+.token-help-link {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-blue-accent, #0095eb);
+  text-decoration: underline;
+  margin-left: 0.5rem;
+}
+
+.input-with-toggle {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.btn-eye {
+  position: absolute;
+  right: 0.75rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.25rem;
+}
+
+/* Form sections */
 .form-section {
   background: #f8fafc;
   border-radius: 12px;
@@ -413,6 +715,24 @@ const saveContent = async () => {
 .form-actions {
   display: flex;
   justify-content: flex-end;
+  gap: 1rem;
+  align-items: center;
+}
+
+.btn-secondary {
+  background: #ffffff;
+  color: var(--color-navy-primary, #1e2942);
+  border: 1px solid var(--color-border, #cbd5e1);
+  padding: 0.85rem 1.5rem;
+  border-radius: var(--radius-btn, 8px);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+  }
 }
 
 .btn-save {
@@ -444,7 +764,7 @@ const saveContent = async () => {
   padding: 1rem 1.25rem;
   border-radius: var(--radius-btn, 8px);
   font-size: 0.95rem;
-  font-weight: 500;
+  line-height: 1.5;
 }
 
 .feedback-banner.success {
@@ -453,9 +773,27 @@ const saveContent = async () => {
   border: 1px solid #a7f3d0;
 }
 
+.feedback-banner.warning {
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
 .feedback-banner.error {
   background: #fef2f2;
   color: #991b1b;
   border: 1px solid #fecaca;
+}
+
+/* Animations */
+.slide-fade-enter-active,
+.slide-fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+  transform: translateY(-10px);
+  opacity: 0;
 }
 </style>
