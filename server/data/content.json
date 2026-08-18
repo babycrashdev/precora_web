@@ -13,7 +13,7 @@
       {
         "id": "qualianor",
         "name": "Accréditation Qualianor N° 176 CR Ind 0",
-        "badge": "Qualianor N° 176 CR Ind 0"
+        "badge": "Accréditation Qualianor N° 176 CR Ind 0"
       },
       {
         "id": "axa",
@@ -47,21 +47,45 @@
   ],
   "zones": {
     "primary": [
-      { "name": "Lot", "code": "46" },
-      { "name": "Corrèze", "code": "19" }
+      {
+        "name": "Lot",
+        "code": "46"
+      },
+      {
+        "name": "Corrèze",
+        "code": "19"
+      }
     ],
     "secondary": [
-      { "name": "Dordogne", "code": "24" },
-      { "name": "Lot-et-Garonne", "code": "47" },
-      { "name": "Tarn-et-Garonne", "code": "82" },
-      { "name": "Aveyron", "code": "12" },
-      { "name": "Haute-Vienne", "code": "87" },
-      { "name": "Cantal", "code": "15 (partiellement)" }
+      {
+        "name": "Dordogne",
+        "code": "24"
+      },
+      {
+        "name": "Lot-et-Garonne",
+        "code": "47"
+      },
+      {
+        "name": "Tarn-et-Garonne",
+        "code": "82"
+      },
+      {
+        "name": "Aveyron",
+        "code": "12"
+      },
+      {
+        "name": "Haute-Vienne",
+        "code": "87"
+      },
+      {
+        "name": "Cantal",
+        "code": "15 (partiellement)"
+      }
     ]
   },
   "alert": {
     "enabled": true,
-    "type": "warning",
+    "type": "danger",
     "title": "Alerte Réglementaire Radioprotection",
     "message": "Conformément aux décrets et décisions de l'ASNR (Code du Travail R. 4451-1), le suivi périodique des agréments et contrôles de vos installations x-ray et zones à risque doit être anticipé avant les échéances d'agrément."
   }
